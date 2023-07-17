@@ -1,5 +1,7 @@
 data/mnist_train.csv
 data/mnist_test.csv
 
+results/*.pkl
+
 __pycache__/
 .DS_Store
