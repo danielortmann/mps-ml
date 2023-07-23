@@ -4,11 +4,12 @@ import scipy as sp
 from mps_arithmetic import MPSaddition
 
 
+
 class MPSclassifier(MPSaddition):
     """Class for building MPS classifier."""
 
-    def __init__(self, χ_max):
-        self.χ_max = χ_max
+    def __init__(self, chi):
+        self.chi = chi
         self.trained = False
         self.model = None
 
@@ -29,7 +30,7 @@ class MPSclassifier(MPSaddition):
         return mps
 
 
-    def compress(self, mps: list, χ_max: int, normalize: bool = False) -> tuple[list, float]:
+    def compress(self, mps: list, chi: int, normalize: bool = False) -> tuple[list, float]:
         L = len(mps)
         norm = np.array([[[1]]])
         mps = mps + [norm]
@@ -39,14 +40,14 @@ class MPSclassifier(MPSaddition):
             vL, d, vR = mps[n].shape
             M = mps[n].reshape(vL*d, vR)
             U, S, Vh = sp.linalg.svd(M, full_matrices=False, lapack_driver='gesvd')
-            U, S, Vh = U[:, :χ_max], S[:χ_max], Vh[:χ_max, :]
-            χ = len(S)
-            mps[n] = U.reshape(vL, d, χ)
+            U, S, Vh = U[:, :chi], S[:chi], Vh[:chi, :]
+            rank = len(S)
+            mps[n] = U.reshape(vL, d, rank)
 
             # absorb SVD tensors into next tensor
             vL, d, vR = mps[n+1].shape
             M = mps[n+1].reshape(vL, d*vR)
-            mps[n+1] = ((S[:, None] * Vh) @ M).reshape(χ, d, vR)
+            mps[n+1] = ((S[:, None] * Vh) @ M).reshape(rank, d, vR)
 
         # flip signs of last two tensors if norm negative
         if mps[-1].item().real < 0:
@@ -70,15 +71,15 @@ class MPSclassifier(MPSaddition):
             for n, x in enumerate(samples):
 
                 x = self.image_to_mps(self.mean_filter(x))
-                Ψ = self.add(Ψ, x) if n > 0 else x
+                state = self.add(state, x) if n > 0 else x
 
                 if n + 1 == len(samples):
-                    Ψ, _ = self.compress(Ψ, self.χ_max, normalize=True)
+                    state, _ = self.compress(state, self.chi, normalize=True)
 
-                elif (n + 1)%self.χ_max == 0 and n + 1 >= 2*self.χ_max:
-                    Ψ, _ = self.compress(Ψ, self.χ_max, normalize=False)
+                elif (n + 1)%self.chi == 0 and n + 1 >= 2*self.chi:
+                    state, _ = self.compress(state, self.chi, normalize=False)
 
-            model.append(Ψ)
+            model.append(state)
 
         self.model = model
 
@@ -99,7 +100,7 @@ class MPSclassifier(MPSaddition):
 
     def project(self, x: np.ndarray) -> list:
         assert self.model is not None
-        projections = [abs(self.inner_product(ψ, self.image_to_mps(self.mean_filter(x)))) for ψ in self.model]
+        projections = [abs(self.inner_product(state, self.image_to_mps(self.mean_filter(x)))) for state in self.model]
 
         return projections
 
