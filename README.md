@@ -1,2 +1,2 @@
 # mps-ml
-An MPS as an ML model that classifies the MNIST dataset
+This repository implements an algorithm based on matrix product states (MPSs) for supervised learning. Conventional machine learning techniques usually involve the iterative minimization of a problem-specific loss function using gradient descent methods. As an alternative approach, this algorithm utilizes tensor network operations to prepare a collection of matrix product states that serve as a machine learning model for a classification task. The algorithm iteratively compresses and adds MPSs that encode the input data. The algorithm is benchmarked on the MNIST dataset for varying virtual bond dimension.
